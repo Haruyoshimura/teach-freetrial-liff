@@ -153,17 +153,31 @@
       <label>学年<span class="req">必須</span></label>
       <select name="entry.671031945" required>
         <option value="">選択してください</option>
-        <option>小1</option><option>小2</option><option>小3</option>
-        <option>小4</option><option>小5</option><option>小6</option>
-        <option>中1</option><option>中2</option><option>中3</option>
-        <option>高1</option><option>高2</option><option>高3</option>
-        <option>既卒</option>
+        <optgroup label="小学生">
+          <option>小学1年</option>
+          <option>小学2年</option>
+          <option>小学3年</option>
+          <option>小学4年</option>
+          <option>小学5年</option>
+          <option>小学6年</option>
+        </optgroup>
+        <optgroup label="中学生">
+          <option>中学1年</option>
+          <option>中学2年</option>
+          <option>中学3年</option>
+        </optgroup>
+        <optgroup label="高校生">
+          <option>高校1年</option>
+          <option>高校2年</option>
+          <option>高校3年</option>
+        </optgroup>
+        <option>その他</option>
       </select>
 
       <label>希望科目<span class="req">必須</span></label>
       <select name="entry.1063406288" required>
         <option value="">選択してください</option>
-        <option>算数/数学</option>
+        <option>算数 / 数学</option>
         <option>国語</option>
         <option>英語</option>
         <option>理科</option>
@@ -174,18 +188,19 @@
       <label>学習目的<span class="req">必須</span></label>
       <select name="entry.1633418255" required>
         <option value="">選択してください</option>
-        <option>苦手科目の克服</option>
+        <option>学校の授業フォロー</option>
         <option>定期テスト対策</option>
         <option>受験対策</option>
-        <option>先取り学習</option>
+        <option>苦手科目の克服</option>
+        <option>勉強習慣をつけたい</option>
         <option>その他</option>
       </select>
 
       <label>体験授業の先生について<span class="req">必須</span></label>
       <select name="entry.308039788" required>
         <option value="">選択してください</option>
+        <option>Teachからおすすめの先生を紹介してほしい</option>
         <option>自分で先生を選びたい</option>
-        <option>おまかせ</option>
       </select>
 
       <!-- LINE連携用 hidden inputs -->
