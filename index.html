@@ -291,6 +291,10 @@
         const params = new URLSearchParams();
         formData.forEach((value, key) => params.append(key, value));
 
+        // Googleフォームが期待する隠しパラメータ（UIから送る時は自動付与されるやつ）
+        params.append('fvv', '1');
+        params.append('pageHistory', '0');
+
         // デバッグ用：送信内容をコンソール出力
         console.log('Submitting to:', FORM_URL);
         for (const [k, v] of params.entries()) {
@@ -298,13 +302,11 @@
         }
 
         // Google Forms は no-cors で投げる必要がある（CORSヘッダーを返さないため）
+        // body に URLSearchParams を直接渡すと Content-Type は自動でセットされる
         await fetch(FORM_URL, {
           method: 'POST',
           mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: params.toString()
+          body: params
         });
 
         // no-cors では response 状態を見られないので、成功とみなす
