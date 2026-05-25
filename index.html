@@ -235,12 +235,26 @@
       $error.style.display = 'block';
     }
 
+    // ?debug=1 でPCブラウザでもテスト可能
+    const DEBUG_MODE = new URLSearchParams(window.location.search).get('debug') === '1';
+
     async function main() {
       try {
         await liff.init({ liffId: LIFF_ID });
 
-        if (!liff.isInClient()) {
+        if (!liff.isInClient() && !DEBUG_MODE) {
           showError('このページはLINEアプリ内で開いてください。');
+          return;
+        }
+
+        if (DEBUG_MODE && !liff.isInClient()) {
+          // PCデバッグモード：ダミー値で進める
+          console.log('[DEBUG MODE] Running outside LINE');
+          document.getElementById('line-userid').value = 'U_debug_userid_placeholder_xxxxxxx';
+          document.getElementById('line-displayname').value = 'デバッグ太郎';
+          document.getElementById('profile-name').textContent = 'デバッグ太郎 さん (DEBUG MODE)';
+          $profile.style.display = 'flex';
+          $btn.disabled = false;
           return;
         }
 
