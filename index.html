@@ -143,7 +143,7 @@
       </div>
     </div>
 
-    <form id="trial-form">
+    <form id="trial-form" action="https://docs.google.com/forms/d/e/1FAIpQLScP-_li5y943i1TAFeSlsnwJWtXNeBaO8seB8JMNt0kz_0TuQ/formResponse" method="POST" target="form-submit-target">
       <label>お名前（フルネーム）<span class="req">必須</span></label>
       <input type="text" name="entry.1427897574" required placeholder="例：山田 太郎" />
 
@@ -219,6 +219,9 @@
     </div>
   </div>
 
+  <!-- フォーム送信先の隠しiframe（Googleフォームが応答を返す場所） -->
+  <iframe name="form-submit-target" id="form-submit-target" style="display:none" title="form submit target"></iframe>
+
   <script>
     const LIFF_ID = '2006856244-9JUsLv9z';
     const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScP-_li5y943i1TAFeSlsnwJWtXNeBaO8seB8JMNt0kz_0TuQ/formResponse';
@@ -279,45 +282,31 @@
       }
     }
 
-    $form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    // 隠しiframe方式で送信：ブラウザネイティブのform submission
+    // → preventDefault しない、ブラウザが普通にPOSTしてくれる
+    // → 応答は iframe に入って画面に影響しない
+    $form.addEventListener('submit', () => {
       $btn.disabled = true;
       $btn.textContent = '送信中…';
       $error.style.display = 'none';
 
-      try {
-        // FormData → URLSearchParams（Googleフォームは urlencoded のほうが確実）
-        const formData = new FormData($form);
-        const params = new URLSearchParams();
-        formData.forEach((value, key) => params.append(key, value));
+      // デバッグ用：送信内容をコンソール出力
+      console.log('Submitting form to:', $form.action);
+      const fd = new FormData($form);
+      for (const [k, v] of fd.entries()) {
+        console.log('  ', k, '=', v);
+      }
+    });
 
-        // Googleフォームが期待する隠しパラメータ（UIから送る時は自動付与されるやつ）
-        params.append('fvv', '1');
-        params.append('pageHistory', '0');
-
-        // デバッグ用：送信内容をコンソール出力
-        console.log('Submitting to:', FORM_URL);
-        for (const [k, v] of params.entries()) {
-          console.log('  ', k, '=', v);
-        }
-
-        // Google Forms は no-cors で投げる必要がある（CORSヘッダーを返さないため）
-        // body に URLSearchParams を直接渡すと Content-Type は自動でセットされる
-        await fetch(FORM_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: params
-        });
-
-        // no-cors では response 状態を見られないので、成功とみなす
+    // iframe にレスポンスが入ったら成功とみなす（初回ロード除外のためフラグ管理）
+    let iframeLoadCount = 0;
+    document.getElementById('form-submit-target').addEventListener('load', () => {
+      iframeLoadCount++;
+      if (iframeLoadCount > 1) {
         $form.style.display = 'none';
         $profile.style.display = 'none';
         $thanks.style.display = 'block';
-      } catch (err) {
-        console.error(err);
-        $btn.disabled = false;
-        $btn.textContent = '送信する';
-        showError('送信に失敗しました。電波の良い場所で再度お試しください。');
+        console.log('Form submission complete (iframe loaded)');
       }
     });
 
