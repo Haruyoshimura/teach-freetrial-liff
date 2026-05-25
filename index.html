@@ -143,7 +143,7 @@
       </div>
     </div>
 
-    <form id="trial-form" action="https://docs.google.com/forms/d/e/1FAIpQLScP-_li5y943i1TAFeSlsnwJWtXNeBaO8seB8JMNt0kz_0TuQ/formResponse" method="POST" target="form-submit-target">
+    <form id="trial-form">
       <label>お名前（フルネーム）<span class="req">必須</span></label>
       <input type="text" name="entry.1427897574" required placeholder="例：山田 太郎" />
 
@@ -219,12 +219,11 @@
     </div>
   </div>
 
-  <!-- フォーム送信先の隠しiframe（Googleフォームが応答を返す場所） -->
-  <iframe name="form-submit-target" id="form-submit-target" style="display:none" title="form submit target"></iframe>
 
   <script>
     const LIFF_ID = '2006856244-9JUsLv9z';
-    const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScP-_li5y943i1TAFeSlsnwJWtXNeBaO8seB8JMNt0kz_0TuQ/formResponse';
+    // GAS Web App URL（サーバーサイドでGoogleフォームに代理POST）
+    const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyMxynwlp_MXonbYTRpw7ffZ_cupgaMHOm08azLvOSHoCNY5qZbhML2Qh5jt_AlPMw3/exec';
 
     const $form = document.getElementById('trial-form');
     const $btn = document.getElementById('submit-btn');
@@ -282,31 +281,45 @@
       }
     }
 
-    // 隠しiframe方式で送信：ブラウザネイティブのform submission
-    // → preventDefault しない、ブラウザが普通にPOSTしてくれる
-    // → 応答は iframe に入って画面に影響しない
-    $form.addEventListener('submit', () => {
+    // GAS Web Appに送信（サーバーサイドでGoogleフォームに代理POSTされる）
+    $form.addEventListener('submit', async (e) => {
+      e.preventDefault();
       $btn.disabled = true;
       $btn.textContent = '送信中…';
       $error.style.display = 'none';
 
-      // デバッグ用：送信内容をコンソール出力
-      console.log('Submitting form to:', $form.action);
-      const fd = new FormData($form);
-      for (const [k, v] of fd.entries()) {
-        console.log('  ', k, '=', v);
-      }
-    });
+      try {
+        // FormData → URLSearchParams（application/x-www-form-urlencoded、CORS preflight回避）
+        const formData = new FormData($form);
+        const params = new URLSearchParams();
+        formData.forEach((value, key) => params.append(key, value));
 
-    // iframe にレスポンスが入ったら成功とみなす（初回ロード除外のためフラグ管理）
-    let iframeLoadCount = 0;
-    document.getElementById('form-submit-target').addEventListener('load', () => {
-      iframeLoadCount++;
-      if (iframeLoadCount > 1) {
-        $form.style.display = 'none';
-        $profile.style.display = 'none';
-        $thanks.style.display = 'block';
-        console.log('Form submission complete (iframe loaded)');
+        // デバッグ用ログ
+        console.log('Submitting to GAS:', GAS_ENDPOINT);
+        for (const [k, v] of params.entries()) {
+          console.log('  ', k, '=', v);
+        }
+
+        const response = await fetch(GAS_ENDPOINT, {
+          method: 'POST',
+          body: params
+        });
+
+        const result = await response.json();
+        console.log('GAS response:', result);
+
+        if (result.ok) {
+          $form.style.display = 'none';
+          $profile.style.display = 'none';
+          $thanks.style.display = 'block';
+        } else {
+          throw new Error('GAS応答エラー: ' + JSON.stringify(result));
+        }
+      } catch (err) {
+        console.error(err);
+        $btn.disabled = false;
+        $btn.textContent = '送信する';
+        showError('送信に失敗しました。電波の良い場所で再度お試しください。');
       }
     });
 
