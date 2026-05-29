@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teach 学習サポート登録</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  margin: 0;
+  background: #f5f4ef;
+  color: #1a1a1a;
+}
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  background: #fff;
+  min-height: 100vh;
+}
+.header {
+  background: #06C755;
+  padding: 16px;
+  text-align: center;
+}
+.header p {
+  font-size: 15px;
+  color: white;
+  margin: 0;
+  font-weight: 500;
+}
+.body {
+  padding: 20px;
+}
+.intro {
+  font-size: 13px;
+  color: #6e6e6e;
+  margin: 0 0 20px;
+  line-height: 1.6;
+}
+.field {
+  margin-bottom: 18px;
+}
+.field-label {
+  font-size: 14px;
+  color: #1a1a1a;
+  font-weight: 500;
+  margin: 0 0 6px;
+  display: block;
+}
+.required { color: #E24B4A; }
+.optional { color: #9b9b9b; font-weight: 400; font-size: 12px; }
+.field-hint {
+  font-size: 11px;
+  color: #6e6e6e;
+  margin: 0 0 8px;
+}
+input[type="email"], textarea {
+  width: 100%;
+  background: #f5f4ef;
+  border: 0.5px solid rgba(0,0,0,0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1a1a1a;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input[type="email"]:focus, textarea:focus {
+  outline: none;
+  border-color: #06C755;
+  border-width: 1.5px;
+}
+textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+.choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.choice {
+  position: relative;
+}
+.choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.choice label {
+  display: block;
+  background: white;
+  border: 1px solid rgba(0,0,0,0.15);
+  text-align: center;
+  padding: 12px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.choice input:checked + label {
+  background: #E8F8EE;
+  border-color: #06C755;
+  border-width: 2px;
+  padding: 11px 7px;
+  font-weight: 500;
+}
+button.submit {
+  width: 100%;
+  background: #06C755;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+button.submit:disabled {
+  background: #b5b5b5;
+  cursor: not-allowed;
+}
+.note {
+  font-size: 11px;
+  color: #6e6e6e;
+  margin: 12px 0 0;
+  text-align: center;
+  line-height: 1.5;
+}
+.error-msg {
+  background: #FCEBEB;
+  color: #791F1F;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.success-icon {
+  font-size: 64px;
+  text-align: center;
+  margin: 40px 0 16px;
+}
+.success-title {
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+  margin: 0 0 12px;
+}
+.success-body {
+  font-size: 14px;
+  color: #6e6e6e;
+  text-align: center;
+  line-height: 1.7;
+  margin: 0 0 24px;
+  padding: 0 20px;
+}
+.support-link {
+  display: block;
+  text-align: center;
+  background: white;
+  border: 1px solid rgba(0,0,0,0.3);
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1a1a1a;
+  text-decoration: none;
+  margin-top: 12px;
+}
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6e6e6e;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+<p>Teach 学習サポート登録</p>
+</div>
+
+<!-- ローディング画面 -->
+<div id="loading" class="body">
+<div class="loading">読み込み中...</div>
+</div>
+
+<!-- フォーム画面 -->
+<div id="form-screen" class="body" style="display:none">
+
+<p class="intro">数問だけご回答ください（約1分）<br>回答後、すぐに見本レポートをお届けします📨</p>
+
+<div id="error-box"></div>
+
+<form id="survey-form" onsubmit="return false;">
+
+<div class="field">
+<label class="field-label">① メールアドレス <span class="required">*</span></label>
+<p class="field-hint">Teachアプリにご登録のメールアドレス</p>
+<input type="email" id="email" placeholder="example@email.com" required>
+</div>
+
+<div class="field">
+<label class="field-label">② 今のTeachの利用について <span class="required">*</span></label>
+<div class="choice-grid">
+<div class="choice">
+<input type="radio" name="satisfaction" id="sat1" value="とても満足">
+<label for="sat1">😊 とても満足</label>
+</div>
+<div class="choice">
+<input type="radio" name="satisfaction" id="sat2" value="満足">
+<label for="sat2">🙂 満足</label>
+</div>
+<div class="choice">
+<input type="radio" name="satisfaction" id="sat3" value="普通">
+<label for="sat3">😐 普通</label>
+</div>
+<div class="choice">
+<input type="radio" name="satisfaction" id="sat4" value="不満">
+<label for="sat4">😣 不満あり</label>
+</div>
+</div>
+</div>
+
+<div class="field">
+<label class="field-label">③ 今、お困りごとはありますか？ <span class="required">*</span></label>
+<div class="choice-grid">
+<div class="choice">
+<input type="radio" name="hasIssue" id="iss1" value="あり">
+<label for="iss1">あり（相談したい）</label>
+</div>
+<div class="choice">
+<input type="radio" name="hasIssue" id="iss2" value="なし">
+<label for="iss2">今のところなし</label>
+</div>
+</div>
+</div>
+
+<div class="field">
+<label class="field-label">④ 学習相談員に聞きたいこと <span class="optional">（任意）</span></label>
+<textarea id="question" placeholder="先生の選び方／勉強の進め方／その他"></textarea>
+</div>
+
+<button class="submit" id="submit-btn" onclick="handleSubmit()">登録してサポートを開始する</button>
+
+<p class="note">回答後、すぐに見本レポートが届きます📨</p>
+
+</form>
+
+</div>
+
+<!-- 成功画面 -->
+<div id="success-screen" class="body" style="display:none">
+<div class="success-icon">🌱</div>
+<h2 class="success-title">ご登録ありがとうございました！</h2>
+<p class="success-body">学習サポートを開始しました。<br>このあと、見本レポートをLINEにお送りします📨<br><br>授業の翌朝にもレポートをお届けします。何かお困りごとがあれば、いつでもLINEでお声がけください😊</p>
+</div>
+
+<!-- 3回失敗時のサポート誘導画面 -->
+<div id="support-screen" class="body" style="display:none">
+<div class="success-icon">🤔</div>
+<h2 class="success-title">うまく見つからない場合</h2>
+<p class="success-body">ご入力いただいたメールアドレスが見つかりませんでした。<br>お手数ですが、こちらから学習相談員に直接ご連絡ください。</p>
+<a class="support-link" href="#" onclick="closeLiff()">LINEに戻る</a>
+</div>
+
+</div>
+
+<script>
+// ========================================
+// 設定（実値をここに入れる）
+// ========================================
+const LIFF_ID = '【新規取得したLIFF IDをここに】';
+const GAS_URL = '【新スプシGASのWeb App URLをここに】';
+
+// ========================================
+// 状態
+// ========================================
+let userId = null;
+let displayName = null;
+let pictureUrl = null;
+let failCount = 0;
+
+// ========================================
+// 初期化
+// ========================================
+async function init() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+
+    const profile = await liff.getProfile();
+    userId = profile.userId;
+    displayName = profile.displayName;
+    pictureUrl = profile.pictureUrl;
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('form-screen').style.display = 'block';
+  } catch (err) {
+    console.error('LIFF初期化エラー', err);
+    document.getElementById('loading').innerHTML =
+      '<div class="loading">エラーが発生しました。<br>LINEアプリ内でこのページを開いてください。</div>';
+  }
+}
+
+// ========================================
+// 送信処理
+// ========================================
+async function handleSubmit() {
+  const email = document.getElementById('email').value.trim();
+  const satisfaction = document.querySelector('input[name="satisfaction"]:checked')?.value;
+  const hasIssue = document.querySelector('input[name="hasIssue"]:checked')?.value;
+  const question = document.getElementById('question').value.trim();
+
+  // バリデーション
+  if (!email) {
+    showError('メールアドレスを入力してください');
+    return;
+  }
+  if (!satisfaction) {
+    showError('満足度を選択してください');
+    return;
+  }
+  if (!hasIssue) {
+    showError('お困りごとの有無を選択してください');
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  try {
+    const response = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        userId,
+        displayName,
+        pictureUrl,
+        email,
+        satisfaction,
+        hasIssue,
+        question
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      // 紐付け成功
+      document.getElementById('form-screen').style.display = 'none';
+      document.getElementById('success-screen').style.display = 'block';
+    } else if (result.code === 'EMAIL_NOT_FOUND') {
+      // メアド不一致
+      failCount++;
+      if (failCount >= 3) {
+        document.getElementById('form-screen').style.display = 'none';
+        document.getElementById('support-screen').style.display = 'block';
+      } else {
+        showError('ご入力のメールアドレスが見つかりませんでした。Teachアプリにご登録のメールアドレスをご確認の上、再度ご入力ください。');
+        btn.disabled = false;
+        btn.textContent = '登録してサポートを開始する';
+      }
+    } else {
+      showError('エラーが発生しました。お時間をおいて再度お試しください。');
+      btn.disabled = false;
+      btn.textContent = '登録してサポートを開始する';
+    }
+  } catch (err) {
+    console.error('送信エラー', err);
+    showError('通信エラーが発生しました。電波状況をご確認の上、再度お試しください。');
+    btn.disabled = false;
+    btn.textContent = '登録してサポートを開始する';
+  }
+}
+
+// ========================================
+// エラー表示
+// ========================================
+function showError(msg) {
+  const box = document.getElementById('error-box');
+  box.innerHTML = `<div class="error-msg">${msg}</div>`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ========================================
+// LIFF閉じる
+// ========================================
+function closeLiff() {
+  if (liff.isInClient()) {
+    liff.closeWindow();
+  }
+}
+
+// 実行
+init();
+</script>
+
+</body>
+</html>
