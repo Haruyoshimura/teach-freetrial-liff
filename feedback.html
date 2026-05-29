@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teach 授業フィードバック</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  margin: 0;
+  background: #f5f4ef;
+  color: #1a1a1a;
+}
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  background: #fff;
+  min-height: 100vh;
+}
+.header {
+  background: #06C755;
+  padding: 16px;
+  text-align: center;
+}
+.header p {
+  font-size: 15px;
+  color: white;
+  margin: 0;
+  font-weight: 500;
+}
+.body {
+  padding: 24px 20px;
+}
+.intro {
+  font-size: 14px;
+  color: #1a1a1a;
+  margin: 0 0 20px;
+  line-height: 1.7;
+}
+.answer-badge {
+  display: inline-block;
+  background: #EAF3DE;
+  color: #3B6D11;
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+.field {
+  margin-bottom: 20px;
+}
+.field-label {
+  font-size: 14px;
+  color: #1a1a1a;
+  font-weight: 500;
+  margin: 0 0 8px;
+  display: block;
+}
+.optional { color: #9b9b9b; font-weight: 400; font-size: 12px; }
+textarea {
+  width: 100%;
+  background: #f5f4ef;
+  border: 0.5px solid rgba(0,0,0,0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #1a1a1a;
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 100px;
+  resize: vertical;
+}
+textarea:focus {
+  outline: none;
+  border-color: #06C755;
+  border-width: 1.5px;
+}
+button.submit {
+  width: 100%;
+  background: #06C755;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+button.submit:disabled {
+  background: #b5b5b5;
+  cursor: not-allowed;
+}
+.note {
+  font-size: 12px;
+  color: #6e6e6e;
+  margin: 12px 0 0;
+  text-align: center;
+  line-height: 1.6;
+}
+.thanks-icon {
+  font-size: 64px;
+  text-align: center;
+  margin: 50px 0 16px;
+}
+.thanks-title {
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+  margin: 0 0 16px;
+}
+.thanks-body {
+  font-size: 14px;
+  color: #6e6e6e;
+  text-align: center;
+  line-height: 1.7;
+  margin: 0 0 24px;
+  padding: 0 20px;
+}
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6e6e6e;
+}
+.error-msg {
+  background: #FCEBEB;
+  color: #791F1F;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin: 20px;
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+<p>Teach 授業フィードバック</p>
+</div>
+
+<!-- ローディング画面 -->
+<div id="loading" class="body">
+<div class="loading">読み込み中...</div>
+</div>
+
+<!-- 自由記述フォーム（③④の場合のみ表示） -->
+<div id="feedback-form" class="body" style="display:none">
+
+<div id="answer-badge-area"></div>
+
+<p class="intro">ご回答ありがとうございます。<br>もしよろしければ、状況をもう少し詳しくお聞かせください。</p>
+
+<div class="field">
+<label class="field-label">具体的な内容 <span class="optional">（任意）</span></label>
+<textarea id="feedback-text" placeholder="例：解説が早すぎて理解しきれなかった／別の教え方の先生も試したい／時間帯を変えたい など"></textarea>
+</div>
+
+<button class="submit" id="submit-btn" onclick="handleFeedback()">送信する</button>
+
+<p class="note">空欄でも送信できます。<br>学習相談員より、近日中に個別にご連絡いたします。</p>
+
+</div>
+
+<!-- Thank You画面 -->
+<div id="thanks-screen" class="body" style="display:none">
+<div class="thanks-icon">🌱</div>
+<h2 class="thanks-title">ご回答ありがとうございました</h2>
+<p class="thanks-body" id="thanks-message">
+（条件に応じた文面）
+</p>
+</div>
+
+</div>
+
+<script>
+// ========================================
+// 設定
+// ========================================
+const LIFF_ID = '2006856244-bsgRGwNw';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycby1-HggBJLt-7c2PCyfyT4CRQ3jSZWsK3PZtBhemfKDcSgd5O9IVE7NFHz9z0uemW5W/exec';
+
+const ANSWER_MAP = {
+  'satisfied':      { label: '😊 満足',          needsForm: false },
+  'try_more':       { label: '🤔 もう少し試したい', needsForm: false },
+  'dissatisfied':   { label: '😣 不満あり',       needsForm: true  },
+  'change_teacher': { label: '🙋 先生変えたい',    needsForm: true  }
+};
+
+const THANKS_MESSAGE = {
+  'satisfied':      'LINEにメッセージを送らせていただきました。引き続きサポートいたします🌱',
+  'try_more':       'LINEにメッセージを送らせていただきました。引き続き応援しています🌱',
+  'dissatisfied':   '学習相談員より、近日中に個別にご連絡いたします。少々お待ちください🌱',
+  'change_teacher': 'ご希望に合う先生をご提案いたします。学習相談員より、近日中に個別にご連絡いたします🌱'
+};
+
+// ========================================
+// 状態
+// ========================================
+let userId = null;
+let displayName = null;
+let lessonId = null;
+let answer = null;
+
+// ========================================
+// 初期化
+// ========================================
+async function init() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+
+    const profile = await liff.getProfile();
+    userId = profile.userId;
+    displayName = profile.displayName;
+
+    // URLパラメータ取得
+    const params = new URLSearchParams(window.location.search);
+    lessonId = params.get('lessonId');
+    answer = params.get('answer');
+
+    if (!ANSWER_MAP[answer]) {
+      showError('回答内容が不正です。お手数ですがLINEメッセージの選択肢から再度お選びください。');
+      return;
+    }
+
+    document.getElementById('loading').style.display = 'none';
+
+    if (ANSWER_MAP[answer].needsForm) {
+      // ③④：自由記述フォーム表示
+      document.getElementById('answer-badge-area').innerHTML =
+        `<span class="answer-badge">${ANSWER_MAP[answer].label}</span>`;
+      document.getElementById('feedback-form').style.display = 'block';
+    } else {
+      // ①②：すぐThank You画面表示＋裏で送信
+      showThanks();
+      await submitFeedback('');
+    }
+  } catch (err) {
+    console.error('LIFF初期化エラー', err);
+    document.getElementById('loading').innerHTML =
+      '<div class="loading">エラーが発生しました。<br>LINEアプリ内でこのページを開いてください。</div>';
+  }
+}
+
+// ========================================
+// 自由記述送信
+// ========================================
+async function handleFeedback() {
+  const text = document.getElementById('feedback-text').value.trim();
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+  await submitFeedback(text);
+  showThanks();
+}
+
+// ========================================
+// GAS送信
+// ========================================
+async function submitFeedback(text) {
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        type: 'feedback',
+        userId: userId,
+        displayName: displayName,
+        lessonId: lessonId,
+        answer: answer,
+        answerLabel: ANSWER_MAP[answer].label,
+        text: text
+      })
+    });
+  } catch (err) {
+    console.error('送信エラー', err);
+  }
+}
+
+// ========================================
+// Thank You画面表示
+// ========================================
+function showThanks() {
+  document.getElementById('feedback-form').style.display = 'none';
+  document.getElementById('thanks-screen').style.display = 'block';
+  document.getElementById('thanks-message').textContent = THANKS_MESSAGE[answer];
+}
+
+// ========================================
+// エラー表示
+// ========================================
+function showError(msg) {
+  document.getElementById('loading').innerHTML = `<div class="error-msg">${msg}</div>`;
+}
+
+// 実行
+init();
+</script>
+
+</body>
+</html>
